@@ -1,26 +1,208 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-inverse-on-surface: #eff1f3;
+  --color-on-surface: #191c1e;
+  --color-error-container: #ffdad6;
+  --color-surface-container: #eceef0;
+  --color-error: #ba1a1a;
+  --color-surface-bright: #f7f9fb;
+  --color-outline-variant: #c2c6d6;
+  --color-inverse-primary: #adc6ff;
+  --color-tertiary: #4d5d73;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-high: #e6e8ea;
+  --color-primary-fixed: #d8e2ff;
+  --color-outline: #727785;
+  --color-surface-tint: #005ac2;
+  --color-on-surface-variant: #424754;
+  --color-primary-fixed-dim: #adc6ff;
+  --color-on-secondary: #ffffff;
+  --color-surface: #f7f9fb;
+  --color-on-tertiary-container: #fdfcff;
+  --color-primary: #0058be;
+  --color-secondary: #545f73;
+  --color-surface-variant: #e0e3e5;
+  --color-on-tertiary: #ffffff;
+  --color-background: #f7f9fb;
+  --color-on-error: #ffffff;
+  --color-tertiary-fixed-dim: #b7c8e1;
+  --color-primary-container: #2170e4;
+  --color-secondary-fixed-dim: #bcc7de;
+  --color-on-tertiary-fixed-variant: #38485d;
+  --color-on-primary-fixed-variant: #004395;
+  --color-tertiary-fixed: #d3e4fe;
+  --color-surface-dim: #d8dadc;
+  --color-on-error-container: #93000a;
+  --color-on-tertiary-fixed: #0b1c30;
+  --color-secondary-fixed: #d8e3fb;
+  --color-secondary-container: #d5e0f8;
+  --color-on-secondary-fixed-variant: #3c475a;
+  --color-surface-container-low: #f2f4f6;
+  --color-inverse-surface: #2d3133;
+  --color-on-primary-fixed: #001a42;
+  --color-on-background: #191c1e;
+  --color-on-secondary-fixed: #111c2d;
+  --color-surface-container-highest: #e0e3e5;
+  --color-tertiary-container: #66768d;
+  --color-on-primary-container: #fefcff;
+  --color-on-secondary-container: #586377;
+  --color-on-primary: #ffffff;
+
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains);
+
+  --radius-sm: 0.125rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+
+  --spacing-gutter: 16px;
+  --spacing-margin-desktop: 32px;
+  --spacing-margin-mobile: 16px;
+  --spacing-max-width: 1440px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  vertical-align: middle;
+}
+
+.chart-bar {
+  transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.row-hover:hover {
+  background-color: #f8fafc;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-on-surface);
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--color-primary-fixed);
+  color: var(--color-on-primary-fixed);
+}
+
+.text-display-lg {
+  font-size: 36px;
+  line-height: 44px;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+.text-headline-md {
+  font-size: 24px;
+  line-height: 32px;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+}
+
+.text-headline-sm {
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 600;
+}
+
+.text-body-lg {
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.text-body-md {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.text-body-sm {
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.text-label-md {
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.text-label-sm {
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 10px;
+  line-height: 14px;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.ProseMirror {
+  outline: none;
+}
+
+.ProseMirror p {
+  margin: 0 0 0.5em;
+}
+
+.ProseMirror p:last-child {
+  margin-bottom: 0;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+  margin: 0.25em 0 0.5em 1.25em;
+  padding: 0;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: var(--color-on-surface-variant);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Rendered email HTML in Unified Inbox */
+.email-body {
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.email-body img {
+  max-width: 100%;
+  height: auto;
+  display: inline-block;
+  margin: 0.5em 0;
+}
+
+.email-body a {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.email-body table {
+  max-width: 100%;
+  border-collapse: collapse;
+}
+
+.email-body blockquote {
+  border-left: 3px solid var(--color-outline-variant);
+  margin: 0.5em 0;
+  padding-left: 1em;
+  color: var(--color-on-surface-variant);
 }

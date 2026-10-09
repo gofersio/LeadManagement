@@ -1,0 +1,264 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum ProspectStatus {
+  new
+  contacted
+  replied
+  unsubscribed
+  bounced
+  stopped
+}
+
+enum CampaignStatus {
+  draft
+  active
+  paused
+  completed
+}
+
+enum EnrollmentStatus {
+  active
+  replied
+  unsubscribed
+  bounced
+  stopped
+  completed
+  paused
+}
+
+enum SendQueueStatus {
+  pending
+  processing
+  sent
+  cancelled
+  failed
+}
+
+enum EmailMessageStatus {
+  sent
+  failed
+}
+
+model UserProfile {
+  id             String   @id @default(cuid())
+  supabaseUserId String   @unique
+  email          String
+  fullName       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  gmailMailboxes GmailMailbox[]
+  prospects      Prospect[]
+  campaigns      Campaign[]
+  notifications  AppNotification[]
+  suppressions   SuppressionList[]
+}
+
+model GmailMailbox {
+  id               String   @id @default(cuid())
+  userId           String
+  googleAccountId  String
+  email            String
+  accessTokenEnc   String   @db.Text
+  refreshTokenEnc  String   @db.Text
+  tokenExpiresAt   DateTime
+  tokenScope       String?  @db.Text
+  dailySendLimit   Int      @default(20)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user        UserProfile          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaigns   Campaign[]
+  enrollments CampaignEnrollment[]
+  emailMessages EmailMessage[]
+  sendQueue   SendQueue[]
+  replyEvents ReplyEvent[]
+
+  @@unique([userId, googleAccountId])
+  @@index([userId])
+}
+
+model Prospect {
+  id          String         @id @default(cuid())
+  firstName   String
+  lastName    String
+  email       String
+  company     String?
+  title       String?
+  linkedInUrl String?
+  source      String
+  status      ProspectStatus @default(new)
+  ownerUserId String
+  csvImportId String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  owner       UserProfile          @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  enrollments CampaignEnrollment[]
+
+  @@unique([ownerUserId, email])
+  @@index([email])
+  @@index([ownerUserId])
+}
+
+model Campaign {
+  id          String         @id @default(cuid())
+  name        String
+  status      CampaignStatus @default(draft)
+  mailboxId   String
+  ownerUserId String
+  description         String?
+  timezone            String   @default("America/New_York")
+  sendWindowStartHour Int      @default(9)
+  sendWindowEndHour   Int      @default(17)
+  createdAt           DateTime @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  mailbox     GmailMailbox         @relation(fields: [mailboxId], references: [id])
+  owner       UserProfile          @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  steps       CampaignStep[]
+  enrollments CampaignEnrollment[]
+
+  @@index([ownerUserId])
+  @@index([status])
+}
+
+model CampaignStep {
+  id                 String   @id @default(cuid())
+  campaignId         String
+  stepNumber         Int
+  delayDays          Int      @default(0)
+  subject            String
+  body               String   @db.Text
+  isActive           Boolean  @default(true)
+  variants           Json     @default("[]")
+  activeVariantIndex Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  campaign     Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  emailMessages EmailMessage[]
+  sendQueue    SendQueue[]
+
+  @@unique([campaignId, stepNumber])
+}
+
+model CampaignEnrollment {
+  id            String           @id @default(cuid())
+  campaignId    String
+  prospectId    String
+  mailboxId     String
+  status        EnrollmentStatus @default(active)
+  currentStep   Int              @default(0)
+  gmailThreadId String?
+  lastSentAt    DateTime?
+  repliedAt     DateTime?
+  stoppedAt     DateTime?
+  stopReason    String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  campaign      Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  prospect      Prospect      @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  mailbox       GmailMailbox  @relation(fields: [mailboxId], references: [id])
+  emailMessages EmailMessage[]
+  sendQueue     SendQueue[]
+  replyEvents   ReplyEvent[]
+
+  @@unique([campaignId, prospectId])
+  @@index([status])
+  @@index([gmailThreadId])
+}
+
+model EmailMessage {
+  id              String             @id @default(cuid())
+  enrollmentId    String
+  stepId          String
+  mailboxId       String
+  gmailMessageId  String?
+  gmailThreadId   String?
+  toEmail         String
+  subject         String
+  bodyRendered    String             @db.Text
+  status          EmailMessageStatus
+  sentAt          DateTime?
+  errorMessage    String?
+  createdAt       DateTime           @default(now())
+
+  enrollment CampaignEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  step       CampaignStep       @relation(fields: [stepId], references: [id])
+  mailbox    GmailMailbox       @relation(fields: [mailboxId], references: [id])
+
+  @@index([mailboxId, sentAt])
+  @@index([enrollmentId])
+}
+
+model SendQueue {
+  id           String          @id @default(cuid())
+  enrollmentId String
+  stepId       String
+  mailboxId    String
+  scheduledFor DateTime
+  status       SendQueueStatus @default(pending)
+  attempts     Int             @default(0)
+  lastError    String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  enrollment CampaignEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  step       CampaignStep       @relation(fields: [stepId], references: [id])
+  mailbox    GmailMailbox       @relation(fields: [mailboxId], references: [id])
+
+  @@index([status, scheduledFor])
+}
+
+model ReplyEvent {
+  id              String   @id @default(cuid())
+  enrollmentId    String
+  mailboxId       String
+  gmailMessageId  String
+  gmailThreadId   String?
+  fromEmail       String
+  snippet         String?
+  detectedAt      DateTime @default(now())
+
+  enrollment CampaignEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  mailbox    GmailMailbox       @relation(fields: [mailboxId], references: [id])
+
+  @@index([enrollmentId])
+}
+
+model SuppressionList {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  reason          String?
+  source          String?
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+
+  createdBy UserProfile? @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+}
+
+model AppNotification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  readAt    DateTime?
+  metadata  Json?
+  createdAt DateTime  @default(now())
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+}
