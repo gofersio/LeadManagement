@@ -183,7 +183,7 @@ export function CampaignEnrollDialog({
             <Button variant="secondary" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={enroll} disabled={saving || selected.size === 0}>
+            <Button onClick={() => enroll()} disabled={saving || selected.size === 0}>
               {saving
                 ? "Adding..."
                 : `Add ${selected.size || ""} prospect${selected.size === 1 ? "" : "s"}`}
