@@ -39,7 +39,7 @@ export function CampaignEnrollDialog({
   useEffect(() => {
     if (!open) return;
     setLoading(true);
-    fetch("/api/prospects?limit=200")
+    fetch("/api/prospects?picker=1&limit=2000")
       .then((r) => r.json())
       .then((data) => setProspects(data.prospects ?? []))
       .finally(() => setLoading(false));
@@ -59,6 +59,10 @@ export function CampaignEnrollDialog({
     );
   });
 
+  const filteredIds = filtered.map((p) => p.id);
+  const allFilteredSelected =
+    filteredIds.length > 0 && filteredIds.every((id) => selected.has(id));
+
   function toggle(id: string) {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -68,12 +72,23 @@ export function CampaignEnrollDialog({
     });
   }
 
-  async function enroll() {
-    if (selected.size === 0) return;
+  function toggleAllFiltered(checked: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const id of filteredIds) {
+        if (checked) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+  }
+
+  async function enroll(ids = Array.from(selected)) {
+    if (ids.length === 0) return;
 
     if (onSelectProspects) {
-      onSelectProspects(Array.from(selected));
-      toast.success(`Added ${selected.size} prospect${selected.size === 1 ? "" : "s"}`);
+      onSelectProspects(ids);
+      toast.success(`Added ${ids.length} prospect${ids.length === 1 ? "" : "s"}`);
       onEnrolled();
       onOpenChange(false);
       return;
@@ -85,12 +100,12 @@ export function CampaignEnrollDialog({
     const res = await fetch(`/api/campaigns/${campaignId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prospectIds: Array.from(selected) }),
+      body: JSON.stringify({ prospectIds: ids }),
     });
     setSaving(false);
 
     if (res.ok) {
-      toast.success(`Added ${selected.size} prospect${selected.size === 1 ? "" : "s"}`);
+      toast.success(`Added ${ids.length} prospect${ids.length === 1 ? "" : "s"}`);
       onEnrolled();
       onOpenChange(false);
     } else {
@@ -121,7 +136,20 @@ export function CampaignEnrollDialog({
                 : "No matches."}
             </p>
           ) : (
-            filtered.map((p) => (
+            <>
+              <label className="sticky top-0 z-10 flex items-center gap-3 px-3 py-2 bg-surface-container-low cursor-pointer border-b border-outline-variant">
+                <input
+                  type="checkbox"
+                  checked={allFilteredSelected}
+                  onChange={(event) => toggleAllFiltered(event.target.checked)}
+                />
+                <span className="text-body-sm font-medium">
+                  {search.trim()
+                    ? `Select all ${filtered.length} matches`
+                    : `Select all ${filtered.length} leads`}
+                </span>
+              </label>
+              {filtered.map((p) => (
               <label
                 key={p.id}
                 className="flex items-center gap-3 px-3 py-2 hover:bg-surface-container-low cursor-pointer"
@@ -138,16 +166,29 @@ export function CampaignEnrollDialog({
                   <p className="text-[11px] text-on-surface-variant truncate">{p.email}</p>
                 </div>
               </label>
-            ))
+              ))}
+            </>
           )}
         </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="secondary" onClick={() => onOpenChange(false)}>
-            Cancel
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={saving || filteredIds.length === 0}
+            onClick={() => enroll(filteredIds)}
+          >
+            {search.trim() ? `Add all ${filtered.length} matches` : `Add all ${available.length}`}
           </Button>
-          <Button onClick={enroll} disabled={saving || selected.size === 0}>
-            {saving ? "Adding..." : `Add ${selected.size || ""} prospect${selected.size === 1 ? "" : "s"}`}
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button onClick={enroll} disabled={saving || selected.size === 0}>
+              {saving
+                ? "Adding..."
+                : `Add ${selected.size || ""} prospect${selected.size === 1 ? "" : "s"}`}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

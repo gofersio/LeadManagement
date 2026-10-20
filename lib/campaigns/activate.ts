@@ -60,19 +60,16 @@ export async function enrollProspects(
     where: { id: campaignId },
   });
 
-  for (const prospectId of prospectIds) {
-    await prisma.campaignEnrollment.upsert({
-      where: {
-        campaignId_prospectId: { campaignId, prospectId },
-      },
-      create: {
+  if (prospectIds.length > 0) {
+    await prisma.campaignEnrollment.createMany({
+      data: prospectIds.map((prospectId) => ({
         campaignId,
         prospectId,
         mailboxId,
         status: "active",
         currentStep: 0,
-      },
-      update: {},
+      })),
+      skipDuplicates: true,
     });
   }
 

@@ -9,6 +9,7 @@ export type ImportProspectsResult = {
   skippedSuppressed: number;
   failed: number;
   errors: string[];
+  prospectIds: string[];
 };
 
 export async function importProspectsFromCsv(
@@ -79,14 +80,30 @@ export async function importProspectsFromCsv(
   for (let i = 0; i < toCreate.length; i += BATCH_SIZE) {
     const batch = toCreate.slice(i, i + BATCH_SIZE);
     try {
-      const result = await prisma.prospect.createMany({ data: batch });
+      const result = await prisma.prospect.createMany({
+        data: batch,
+        skipDuplicates: true,
+      });
       imported += result.count;
-      failed += batch.length - result.count;
+      skippedDuplicate += batch.length - result.count;
     } catch (err) {
+      const code = typeof err === "object" && err && "code" in err ? String(err.code) : "";
+      if (code === "P2002") {
+        skippedDuplicate += batch.length;
+        continue;
+      }
       failed += batch.length;
       errors.push(err instanceof Error ? err.message : "Batch import failed");
     }
   }
+
+  const attachableEmails = emails.filter((email) => !suppressedSet.has(email));
+  const matched = attachableEmails.length
+    ? await prisma.prospect.findMany({
+        where: { ownerUserId, email: { in: attachableEmails } },
+        select: { id: true },
+      })
+    : [];
 
   return {
     csvImportId,
@@ -95,5 +112,6 @@ export async function importProspectsFromCsv(
     skippedSuppressed,
     failed,
     errors,
+    prospectIds: matched.map((prospect) => prospect.id),
   };
 }

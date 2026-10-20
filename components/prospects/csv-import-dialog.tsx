@@ -25,12 +25,15 @@ type ImportResult = {
 
 interface CsvImportDialogProps {
   onImported: () => void;
+  /** Existing and newly imported lead ids from this file, so a campaign can attach them. */
+  onMatched?: (prospectIds: string[]) => void;
   triggerClassName?: string;
   triggerVariant?: "default" | "secondary" | "ghost";
 }
 
 export function CsvImportDialog({
   onImported,
+  onMatched,
   triggerClassName,
   triggerVariant = "secondary",
 }: CsvImportDialogProps) {
@@ -98,10 +101,21 @@ export function CsvImportDialog({
     }
 
     setResult(data);
+    if (Array.isArray(data.prospectIds) && data.prospectIds.length > 0) {
+      onMatched?.(data.prospectIds);
+    }
     onImported();
 
-    if (data.imported > 0) {
+    if (data.imported > 0 && data.skippedDuplicate > 0) {
+      toast.success(
+        `Imported ${data.imported} lead(s). ${data.skippedDuplicate} already in your list were skipped.`,
+      );
+    } else if (data.imported > 0) {
       toast.success(`Imported ${data.imported} lead(s)`);
+    } else if (data.skippedDuplicate > 0) {
+      toast.success(
+        `These leads are already in your list. ${data.skippedDuplicate} duplicate(s) were skipped.`,
+      );
     } else {
       toast.message("No new leads imported");
     }
@@ -188,11 +202,23 @@ export function CsvImportDialog({
           {result && (
             <div className="p-4 bg-surface-container-low rounded border border-outline-variant text-body-sm space-y-1">
               <p>
-                <strong>{result.imported}</strong> imported ·{" "}
-                <strong>{result.skippedDuplicate}</strong> duplicate(s) skipped ·{" "}
-                <strong>{result.skippedSuppressed}</strong> suppressed
+                <strong>{result.imported}</strong> added
+                {result.skippedDuplicate > 0 && (
+                  <>
+                    {" "}
+                    · <strong>{result.skippedDuplicate}</strong> already in your list, skipped
+                  </>
+                )}
+                {result.skippedSuppressed > 0 && (
+                  <>
+                    {" "}
+                    · <strong>{result.skippedSuppressed}</strong> suppressed
+                  </>
+                )}
               </p>
-              {result.failed > 0 && <p className="text-error">{result.failed} failed to import</p>}
+              {result.failed > 0 && (
+                <p className="text-error">{result.failed} could not be imported</p>
+              )}
             </div>
           )}
 

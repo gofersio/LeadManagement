@@ -108,6 +108,8 @@ model Prospect {
   @@unique([ownerUserId, email])
   @@index([email])
   @@index([ownerUserId])
+  @@index([ownerUserId, createdAt])
+  @@index([ownerUserId, source])
 }
 
 model Campaign {

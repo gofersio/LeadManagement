@@ -97,7 +97,7 @@ export function CampaignCreateWizard({
   ]);
 
   const loadProspects = useCallback(async () => {
-    const res = await fetch("/api/prospects?limit=500");
+    const res = await fetch("/api/prospects?picker=1&limit=2000");
     if (res.ok) {
       const data = await res.json();
       setProspects(data.prospects ?? []);

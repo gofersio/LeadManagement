@@ -12,7 +12,7 @@ export default function NewCampaignPage() {
   useEffect(() => {
     Promise.all([
       fetch("/api/mailboxes").then((r) => r.json()),
-      fetch("/api/prospects?limit=500").then((r) => r.json()),
+      fetch("/api/prospects?picker=1&limit=2000").then((r) => r.json()),
     ])
       .then(([mb, pr]) => {
         setMailboxes(mb.mailboxes ?? mb);

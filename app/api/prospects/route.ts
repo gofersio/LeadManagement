@@ -9,25 +9,68 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
-  const page = parseInt(searchParams.get("page") ?? "1", 10);
-  const limit = parseInt(searchParams.get("limit") ?? "20", 10);
+  const source = searchParams.get("source")?.trim() || undefined;
+  const includeSources = searchParams.get("sources") === "1";
+  const picker = searchParams.get("picker") === "1";
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
+  const limit = Math.min(
+    picker ? 2000 : 100,
+    Math.max(1, parseInt(searchParams.get("limit") ?? "20", 10) || 20),
+  );
 
   const where = {
     ownerUserId: user.profile.id,
     ...(status ? { status: status as never } : {}),
+    ...(source ? { source } : {}),
   };
 
-  const [prospects, total] = await Promise.all([
+  const listSelect = picker
+    ? {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        company: true,
+      }
+    : {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        company: true,
+        title: true,
+        source: true,
+        status: true,
+      };
+
+  const [prospects, total, sourceRows] = await Promise.all([
     prisma.prospect.findMany({
       where,
+      select: listSelect,
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * limit,
       take: limit,
     }),
     prisma.prospect.count({ where }),
+    includeSources
+      ? prisma.prospect.findMany({
+          where: { ownerUserId: user.profile.id },
+          distinct: ["source"],
+          select: { source: true },
+          orderBy: { source: "asc" },
+        })
+      : Promise.resolve(null),
   ]);
 
-  return NextResponse.json({ prospects, total, page, limit });
+  return NextResponse.json({
+    prospects,
+    total,
+    page,
+    limit,
+    ...(sourceRows
+      ? { sources: sourceRows.map((row) => row.source).filter(Boolean) }
+      : {}),
+  });
 }
 
 export async function POST(request: Request) {

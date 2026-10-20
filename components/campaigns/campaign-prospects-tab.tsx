@@ -69,6 +69,7 @@ export function CampaignProspectsTab({
               <div className="flex flex-wrap gap-2 mb-6">
                 <CsvImportDialog
                   onImported={onRefresh}
+                  onMatched={(ids) => onAddProspects?.(ids)}
                   triggerVariant="default"
                   triggerClassName="text-white"
                 />
